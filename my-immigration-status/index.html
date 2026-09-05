@@ -24,7 +24,6 @@ body{
   color:var(--text);
   min-height:100vh;
   background-color:#f4f4f6;
-  /* হালকা Fijian Masi প্যাটার্ন ব্যাকগ্রাউন্ড */
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg stroke='%23e7e9ef' stroke-width='6' fill='none' stroke-linecap='round'%3E%3Cpath d='M25 25l34 34M59 25l-34 34'/%3E%3Cpath d='M93 25l34 34M127 25l-34 34'/%3E%3Cpath d='M161 25l34 34M195 25l-34 34'/%3E%3Cpath d='M20 130v42M36 130v42M52 130v42'/%3E%3Cpath d='M88 130v42M104 130v42M120 130v42'/%3E%3Cpath d='M156 130v42M172 130v42M188 130v42'/%3E%3C/g%3E%3C/svg%3E");
 }
 
@@ -82,8 +81,6 @@ body{
 .details-card{width:575px;max-width:100%;overflow:hidden}
 .details-head{background:var(--navy);color:#fff;font-size:19px;font-weight:600;padding:14px 24px}
 .details-body{padding:24px}
-
-/* ছবি + ব্যাজ সেকশন */
 .details-top{display:flex;gap:22px;align-items:stretch}
 .photo-box{width:110px;flex:none;text-align:center}
 .photo-box img{
@@ -100,12 +97,27 @@ body{
 .badge .b-value{font-size:15px;color:#20264a;margin-top:4px;font-weight:500}
 .badge .b-value.valid{color:var(--green)}
 .badge .b-value.invalid{color:var(--red)}
-
 .rows{margin-top:10px}
 .row{display:flex;justify-content:space-between;gap:20px;padding:15px 2px;border-bottom:1px solid var(--line);font-size:15px}
 .row:last-child{border-bottom:none}
 .row .r-label{color:var(--label)}
 .row .r-value{color:#20264a;font-weight:500;text-align:right}
+
+/* ===== View Approval বাটন ===== */
+.btn-approval{
+  display:none;margin-top:20px;
+  align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:13px 20px;border-radius:10px;
+  background:linear-gradient(135deg,#0e9f5b,#0b7d47);
+  color:#fff;font:inherit;font-size:16px;font-weight:600;letter-spacing:.3px;
+  text-decoration:none;box-shadow:0 6px 16px rgba(14,159,91,.3);
+  transition:filter .15s,transform .1s;
+}
+.btn-approval.show{display:flex}
+.btn-approval:hover{filter:brightness(1.08)}
+.btn-approval:active{transform:translateY(1px)}
+.approval-note{display:none;text-align:center;font-size:12px;color:var(--label);margin-top:8px}
+.approval-note.show{display:block}
 
 @media(max-width:1120px){
   .form-card,.details-card{width:100%;max-width:560px}
@@ -121,7 +133,6 @@ body{
 <!-- ===== Header ===== -->
 <header class="site-header">
   <div class="brand">
-    <!-- আসল Fiji Immigration লোগো (লোড ব্যর্থ হলে SVG ফলব্যাক) -->
     <img class="emblem"
          src="https://www.immigration.gov.fj/wp-content/uploads/2023/04/Fiji-Immigration-Logo-1-1.png"
          alt="Fiji Immigration Logo"
@@ -183,7 +194,6 @@ body{
     <div class="details-body">
 
       <div class="details-top">
-        <!-- আবেদনকারীর ছবি -->
         <div class="photo-box">
           <img id="dPhoto" alt="Applicant Photo">
           <span class="photo-label">Applicant Photo</span>
@@ -216,38 +226,45 @@ body{
         </div>
       </div>
 
+      <!-- ===== View Approval বাটন (ভেরিফাই সফল হলে দেখাবে) ===== -->
+      <a id="approvalBtn" class="btn-approval" target="_blank" rel="noopener">
+        <span>📄</span> View Approval
+      </a>
+      <p class="approval-note" id="approvalNote">Approval letter will open in a new tab.</p>
+
     </div>
   </section>
 
 </main>
 
 <script>
-/* ================= ডেমো ডেটাবেস (মোট ১৫টি রেকর্ড + ছবি) =================
-   প্রতিটি রেকর্ডে "photo" ফিল্ড আছে। রিয়েল সিস্টেমে নিজের ছবির লিংক/পাথ বসাবেন,
-   যেমন: photo:"photos/maria.jpg"                                        */
+/* ================= ডেমো ডেটাবেস (১৫টি রেকর্ড + ছবি + ইউনিক Approval Ref) =================
+   প্রতিটি রেকর্ডে "ref" আলাদা র‍্যান্ডম রেফারেন্স নম্বর — এ থেকেই আলাদা লিংক তৈরি হয়।
+   নিজের কাস্টম লিংক দিতে চাইলে রেকর্ডে যোগ করুন: link:"https://আপনার-লিংক"        */
 const RECORDS = {
-  "FJ123456|EX-2024-0881": { name:"MARIA KOROI",        status:"VALID",   validity:"15-08-2026", permitNo:"EX-2024-0881", permitType:"Exemption",        passport:"FJ123456", photo:"https://randomuser.me/api/portraits/women/44.jpg" },
-  "A20141174|PWSS200056987": { name:"MD RAZIBOL HOSSAIN", status:"VALID",   validity:"15-08-2028", permitNo:"PWSS200056987", permitType:"Work Permit",      passport:"A20141174", photo:"https://res.cloudinary.com/acv1jxvx/image/upload/v1788517509/54542.jpg" },
-  "EH1234567|SP-2024-0234":{ name:"HIROSHI TANAKA",     status:"VALID",   validity:"30-06-2026", permitNo:"SP-2024-0234", permitType:"Student Permit",   passport:"EH1234567", photo:"https://randomuser.me/api/portraits/men/11.jpg" },
-  "P1234567|WP-2022-3341": { name:"SARAH MITCHELL",     status:"EXPIRED", validity:"31-03-2024", permitNo:"WP-2022-3341", permitType:"Work Permit",      passport:"P1234567", photo:"https://randomuser.me/api/portraits/women/65.jpg" },
-  "FJ789012|RP-2023-0456": { name:"JONE NAYACALEVU",    status:"VALID",   validity:"31-12-2027", permitNo:"RP-2023-0456", permitType:"Residence Permit", passport:"FJ789012", photo:"https://randomuser.me/api/portraits/men/75.jpg" },
-  "BN5678901|EX-2024-1203":{ name:"LISA CHAND",         status:"VALID",   validity:"28-02-2026", permitNo:"EX-2024-1203", permitType:"Exemption",        passport:"BN5678901", photo:"https://randomuser.me/api/portraits/women/26.jpg" },
-  "GB4567890|BP-2024-0098":{ name:"JAMES WONG",         status:"VALID",   validity:"31-12-2026", permitNo:"BP-2024-0098", permitType:"Business Permit",  passport:"GB4567890", photo:"https://randomuser.me/api/portraits/men/52.jpg" },
-  "IN2345678|WP-2024-0871":{ name:"ARJIT SINGH",        status:"VALID",   validity:"30-09-2026", permitNo:"WP-2024-0871", permitType:"Work Permit",      passport:"IN2345678", photo:"https://randomuser.me/api/portraits/men/83.jpg" },
-  "US3456789|RP-2022-0567":{ name:"EMILY ROBANAKADAVU", status:"EXPIRED", validity:"15-01-2024", permitNo:"RP-2022-0567", permitType:"Residence Permit", passport:"US3456789", photo:"https://randomuser.me/api/portraits/women/12.jpg" },
-  "FJ345678|SP-2023-0678": { name:"ASHNEEL KUMAR",      status:"VALID",   validity:"31-12-2025", permitNo:"SP-2023-0678", permitType:"Student Permit",   passport:"FJ345678", photo:"https://randomuser.me/api/portraits/men/29.jpg" },
-  "AU5678901|EX-2023-0999":{ name:"MICHAEL BYRNE",      status:"VALID",   validity:"31-07-2025", permitNo:"EX-2023-0999", permitType:"Exemption",        passport:"AU5678901", photo:"https://randomuser.me/api/portraits/men/40.jpg" },
-  "NP6789012|WP-2023-2201":{ name:"BINOD SHRESTHA",     status:"VALID",   validity:"30-06-2026", permitNo:"WP-2023-2201", permitType:"Work Permit",      passport:"NP6789012", photo:"https://randomuser.me/api/portraits/men/64.jpg" },
-  "FJ567890|IP-2024-0112": { name:"MEREANI TUINAMATA",  status:"VALID",   validity:"31-12-2028", permitNo:"IP-2024-0112", permitType:"Investor Permit",  passport:"FJ567890", photo:"https://randomuser.me/api/portraits/women/58.jpg" },
-  "ZA7890123|RP-2024-0345":{ name:"NALINI REDDY",       status:"VALID",   validity:"31-08-2027", permitNo:"RP-2024-0345", permitType:"Residence Permit", passport:"ZA7890123", photo:"https://randomuser.me/api/portraits/women/79.jpg" },
-  "UK8901234|EX-2024-1456":{ name:"PETER HANCOX",       status:"EXPIRED", validity:"31-01-2025", permitNo:"EX-2024-1456", permitType:"Exemption",        passport:"UK8901234", photo:"https://randomuser.me/api/portraits/men/17.jpg" }
+  "FJ123456|EX-2024-0881": { name:"MARIA KOROI",        status:"VALID",   validity:"15-08-2026", permitNo:"EX-2024-0881", permitType:"Exemption",        passport:"FJ123456", ref:"FIM-APR-2024-7K2M9", photo:"https://randomuser.me/api/portraits/women/44.jpg" },
+  "A9876543|WP-2023-1145": { name:"DANIEL PRASAD",      status:"VALID",   validity:"31-12-2025", permitNo:"WP-2023-1145", permitType:"Work Permit",      passport:"A9876543", ref:"FIM-APR-2023-QX481", photo:"https://randomuser.me/api/portraits/men/32.jpg" },
+  "EH1234567|SP-2024-0234":{ name:"HIROSHI TANAKA",     status:"VALID",   validity:"30-06-2026", permitNo:"SP-2024-0234", permitType:"Student Permit",   passport:"EH1234567", ref:"FIM-APR-2024-M2P7L", photo:"https://randomuser.me/api/portraits/men/11.jpg" },
+  "P1234567|WP-2022-3341": { name:"SARAH MITCHELL",     status:"EXPIRED", validity:"31-03-2024", permitNo:"WP-2022-3341", permitType:"Work Permit",      passport:"P1234567", ref:"FIM-APR-2022-ZR936", photo:"https://randomuser.me/api/portraits/women/65.jpg" },
+  "FJ789012|RP-2023-0456": { name:"JONE NAYACALEVU",    status:"VALID",   validity:"31-12-2027", permitNo:"RP-2023-0456", permitType:"Residence Permit", passport:"FJ789012", ref:"FIM-APR-2023-KD514", photo:"https://randomuser.me/api/portraits/men/75.jpg" },
+  "BN5678901|EX-2024-1203":{ name:"LISA CHAND",         status:"VALID",   validity:"28-02-2026", permitNo:"EX-2024-1203", permitType:"Exemption",        passport:"BN5678901", ref:"FIM-APR-2024-T8W2N", photo:"https://randomuser.me/api/portraits/women/26.jpg" },
+  "GB4567890|BP-2024-0098":{ name:"JAMES WONG",         status:"VALID",   validity:"31-12-2026", permitNo:"BP-2024-0098", permitType:"Business Permit",  passport:"GB4567890", ref:"FIM-APR-2024-B7H3Q", photo:"https://randomuser.me/api/portraits/men/52.jpg" },
+  "IN2345678|WP-2024-0871":{ name:"ARJIT SINGH",        status:"VALID",   validity:"30-09-2026", permitNo:"WP-2024-0871", permitType:"Work Permit",      passport:"IN2345678", ref:"FIM-APR-2024-V4J9C", photo:"https://randomuser.me/api/portraits/men/83.jpg" },
+  "US3456789|RP-2022-0567":{ name:"EMILY ROBANAKADAVU", status:"EXPIRED", validity:"15-01-2024", permitNo:"RP-2022-0567", permitType:"Residence Permit", passport:"US3456789", ref:"FIM-APR-2022-LS628", photo:"https://randomuser.me/api/portraits/women/12.jpg" },
+  "FJ345678|SP-2023-0678": { name:"ASHNEEL KUMAR",      status:"VALID",   validity:"31-12-2025", permitNo:"SP-2023-0678", permitType:"Student Permit",   passport:"FJ345678", ref:"FIM-APR-2023-N3M7K", photo:"https://randomuser.me/api/portraits/men/29.jpg" },
+  "AU5678901|EX-2023-0999":{ name:"MICHAEL BYRNE",      status:"VALID",   validity:"31-07-2025", permitNo:"EX-2023-0999", permitType:"Exemption",        passport:"AU5678901", ref:"FIM-APR-2023-Y6R4D", photo:"https://randomuser.me/api/portraits/men/40.jpg" },
+  "NP6789012|WP-2023-2201":{ name:"BINOD SHRESTHA",     status:"VALID",   validity:"30-06-2026", permitNo:"WP-2023-2201", permitType:"Work Permit",      passport:"NP6789012", ref:"FIM-APR-2023-P9T5W", photo:"https://randomuser.me/api/portraits/men/64.jpg" },
+  "FJ567890|IP-2024-0112": { name:"MEREANI TUINAMATA",  status:"VALID",   validity:"31-12-2028", permitNo:"IP-2024-0112", permitType:"Investor Permit",  passport:"FJ567890", ref:"FIM-APR-2024-G2K8M", photo:"https://randomuser.me/api/portraits/women/58.jpg" },
+  "ZA7890123|RP-2024-0345":{ name:"NALINI REDDY",       status:"VALID",   validity:"31-08-2027", permitNo:"RP-2024-0345", permitType:"Residence Permit", passport:"ZA7890123", ref:"FIM-APR-2024-X5C3J", photo:"https://randomuser.me/api/portraits/women/79.jpg" },
+  "UK8901234|EX-2024-1456":{ name:"PETER HANCOX",       status:"EXPIRED", validity:"31-01-2025", permitNo:"EX-2024-1456", permitType:"Exemption",        passport:"UK8901234", ref:"FIM-APR-2024-H8N2Q", photo:"https://randomuser.me/api/portraits/men/17.jpg" }
 };
 
-/* খালি অবস্থার সিলুয়েট প্লেসহোল্ডার (SVG) */
+/* খালি অবস্থার সিলুয়েট প্লেসহোল্ডার */
 const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 134'%3E%3Crect width='110' height='134' fill='%23e8ebf3'/%3E%3Ccircle cx='55' cy='52' r='21' fill='%23b6bdd2'/%3E%3Cpath d='M55 79c-20 0-32 12-35 28l-1 27h72l-1-27c-3-16-15-28-35-28z' fill='%23b6bdd2'/%3E%3C/svg%3E";
 
 const $ = id => document.getElementById(id);
 const form = $('verifyForm'), msg = $('formMsg'), btn = $('verifyBtn'), photo = $('dPhoto');
+const approvalBtn = $('approvalBtn'), approvalNote = $('approvalNote');
 
 /* ---------- ইনপুটের ভেতরের Clear (×) বাটন ---------- */
 document.querySelectorAll('.clear-btn').forEach(b=>{
@@ -258,7 +275,7 @@ document.querySelectorAll('.clear-btn').forEach(b=>{
   sync();
 });
 
-/* ---------- ছবি সেট + লোড ব্যর্থ হলে নামের ইনিশিয়াল অ্যাভাটার ---------- */
+/* ---------- ছবি সেট + ফলব্যাক অ্যাভাটার ---------- */
 function setPhoto(src, name){
   photo.onerror = () => {
     photo.onerror = null;
@@ -268,6 +285,111 @@ function setPhoto(src, name){
   photo.src = src;
 }
 
+/* ---------- রেফারেন্স নম্বর থেকে QR-স্টাইল SVG (ইউনিক প্যাটার্ন) ---------- */
+function qrSVG(seed){
+  let h = 0;
+  for(let i=0;i<seed.length;i++){ h = (h*31 + seed.charCodeAt(i)) >>> 0; }
+  let cells = '';
+  const n = 21;
+  for(let y=0;y<n;y++){
+    for(let x=0;x<n;x++){
+      h = (h * 1103515245 + 12345) >>> 0;
+      const inFinder = (x<8&&y<8)||(x>n-9&&y<8)||(x<8&&y>n-9);
+      if(((h>>>16)&1) && !inFinder){
+        cells += '<rect x="'+(x*4)+'" y="'+(y*4)+'" width="4" height="4" fill="#1a1a2e"/>';
+      }
+    }
+  }
+  function finder(cx,cy){
+    return '<rect x="'+cx+'" y="'+cy+'" width="28" height="28" fill="none" stroke="#1a1a2e" stroke-width="4"/>'
+         + '<rect x="'+(cx+8)+'" y="'+(cy+8)+'" width="12" height="12" fill="#1a1a2e"/>';
+  }
+  return '<svg viewBox="0 0 84 84" width="90" height="90" xmlns="http://www.w3.org/2000/svg">'
+       + '<rect width="84" height="84" fill="#fff"/>' + cells
+       + finder(2,2) + finder(54,2) + finder(2,54) + '</svg>';
+}
+
+/* ---------- প্রতিটি রেকর্ডের জন্য আলাদা Approval Letter পেজ (HTML) ---------- */
+function approvalPageHTML(d){
+  const valid = d.status === 'VALID';
+  const stampColor = valid ? '#0e9f5b' : '#c0392b';
+  const stampText  = valid ? 'APPROVED' : 'EXPIRED';
+  const issued = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+  const qr = qrSVG(d.ref + d.passport);
+  const avatarFallback = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(d.name) + '&background=151c54&color=ffffff&size=300&bold=true';
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+  + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+  + '<title>Approval Letter - ' + d.ref + '</title>'
+  + '<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">'
+  + '<style>'
+  + '*{margin:0;padding:0;box-sizing:border-box}'
+  + 'body{font-family:Poppins,sans-serif;background:#eef0f5;padding:30px 14px;color:#2b3152}'
+  + '.letter{max-width:760px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 18px 50px rgba(21,28,84,.18);border:1px solid #dfe3ee}'
+  + '.l-head{background:#151c54;color:#fff;padding:22px 30px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}'
+  + '.l-head img{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:8px;padding:4px}'
+  + '.l-head h1{font-size:20px;font-weight:700}'
+  + '.l-head p{font-size:13px;color:#c9cfef}'
+  + '.ref-tag{margin-left:auto;background:rgba(255,255,255,.12);border:1px dashed #8f9ad0;border-radius:8px;padding:8px 14px;font-size:12px}'
+  + '.ref-tag b{display:block;font-size:14px;letter-spacing:.5px}'
+  + '.l-body{padding:30px}'
+  + '.stamp{display:inline-block;border:3px solid ' + stampColor + ';color:' + stampColor + ';font-weight:700;font-size:22px;letter-spacing:3px;padding:8px 26px;border-radius:8px;transform:rotate(-4deg);margin-bottom:22px;opacity:.9}'
+  + '.top{display:flex;gap:24px;flex-wrap:wrap}'
+  + '.photo img{width:130px;height:158px;object-fit:cover;object-position:top;border-radius:10px;border:2px solid #151c54}'
+  + '.info{flex:1;min-width:260px}'
+  + '.info .i-row{display:flex;justify-content:space-between;gap:14px;padding:9px 2px;border-bottom:1px solid #eceef5;font-size:14px}'
+  + '.info .i-row span:first-child{color:#6a7194}'
+  + '.info .i-row span:last-child{font-weight:600;text-align:right}'
+  + '.qr-box{flex:none;text-align:center;border:1px solid #e3e6f0;border-radius:10px;padding:12px;background:#fafbfe}'
+  + '.qr-box small{display:block;font-size:10px;color:#6a7194;margin-top:6px;letter-spacing:.5px}'
+  + '.para{margin-top:24px;font-size:14px;line-height:1.8;color:#4a5170}'
+  + '.sign{margin-top:34px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}'
+  + '.sign .line{border-top:2px solid #2b3152;padding-top:8px;font-size:13px;font-weight:600;min-width:220px}'
+  + '.sign .line small{display:block;font-weight:400;color:#6a7194;font-size:11px}'
+  + '.print-btn{background:#151c54;color:#fff;border:none;border-radius:24px;padding:11px 30px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}'
+  + '.l-foot{background:#f4f5fa;border-top:1px solid #e6e8f0;padding:14px 30px;font-size:11.5px;color:#7a80a0;text-align:center}'
+  + '@media print{body{background:#fff;padding:0}.letter{box-shadow:none;border:none;border-radius:0}.print-btn{display:none}}'
+  + '</style></head><body>'
+  + '<div class="letter">'
+  + '<div class="l-head">'
+  + '<img src="https://www.immigration.gov.fj/wp-content/uploads/2023/04/Fiji-Immigration-Logo-1-1.png" alt="Logo">'
+  + '<div><h1>Ministry of Immigration - Fiji</h1><p>Permit / Exemption Approval Letter</p></div>'
+  + '<div class="ref-tag">Ref No:<b>' + d.ref + '</b></div>'
+  + '</div>'
+  + '<div class="l-body">'
+  + '<div class="stamp">' + stampText + '</div>'
+  + '<div class="top">'
+  + '<div class="photo"><img src="' + d.photo + '" alt="Applicant" onerror="this.onerror=null;this.src=\'' + avatarFallback + '\'"></div>'
+  + '<div class="info">'
+  + '<div class="i-row"><span>Applicant Name</span><span>' + d.name + '</span></div>'
+  + '<div class="i-row"><span>Passport No</span><span>' + d.passport + '</span></div>'
+  + '<div class="i-row"><span>Permit / Exemption No</span><span>' + d.permitNo + '</span></div>'
+  + '<div class="i-row"><span>Permit Type</span><span>' + d.permitType + '</span></div>'
+  + '<div class="i-row"><span>Status</span><span style="color:' + stampColor + '">' + d.status + '</span></div>'
+  + '<div class="i-row"><span>Validity Date</span><span>' + d.validity + '</span></div>'
+  + '<div class="i-row"><span>Date Issued</span><span>' + issued + '</span></div>'
+  + '</div>'
+  + '<div class="qr-box">' + qr + '<small>VERIFY: ' + d.ref + '</small></div>'
+  + '</div>'
+  + '<p class="para">This is to certify that the applicant named above has been granted a <b>' + d.permitType + '</b> by the Ministry of Immigration, Republic of Fiji. This approval is subject to the conditions of the Immigration Act 2003 and remains valid until the validity date stated above. This document must be presented upon request by an Immigration Officer.</p>'
+  + '<div class="sign">'
+  + '<button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>'
+  + '<div class="line">Authorized Signatory<small>Director of Immigration — Ministry of Immigration, Fiji</small></div>'
+  + '</div>'
+  + '</div>'
+  + '<div class="l-foot">This is a system generated document. Verify authenticity at immigration.gov.fj quoting Ref No: ' + d.ref + '</div>'
+  + '</div></body></html>';
+}
+
+/* ---------- প্রতিটি রেকর্ডের ইউনিক লিংক (blob URL) তৈরি/ক্যাশ ---------- */
+const LINK_CACHE = {};
+function getApprovalURL(d){
+  if(d.link) return d.link; /* চাইলে রেকর্ডে নিজের কাস্টম লিংক বসাতে পারেন */
+  if(!LINK_CACHE[d.ref]){
+    LINK_CACHE[d.ref] = URL.createObjectURL(new Blob([approvalPageHTML(d)], {type:'text/html'}));
+  }
+  return LINK_CACHE[d.ref];
+}
+
 /* ---------- ডিটেইলস কার্ডে ডেটা বসানো / রিসেট ---------- */
 function renderDetails(d){
   $('dStatus').textContent   = d ? d.status   : '--';
@@ -275,9 +397,19 @@ function renderDetails(d){
   $('dStatus').classList.toggle('invalid', !!d && d.status !== 'VALID');
   $('dValidity').textContent = d ? d.validity : '--';
   $('dName').textContent     = d ? d.name     : '--';
-  $('dPermit').textContent   = d ? `${d.permitNo} / ${d.permitType}` : '-- / --';
+  $('dPermit').textContent   = d ? d.permitNo + ' / ' + d.permitType : '-- / --';
   $('dPassport').textContent = d ? d.passport : '--';
   setPhoto(d ? d.photo : PLACEHOLDER, d ? d.name : null);
+
+  if(d){
+    approvalBtn.href = getApprovalURL(d);
+    approvalBtn.classList.add('show');
+    approvalNote.classList.add('show');
+  }else{
+    approvalBtn.classList.remove('show');
+    approvalNote.classList.remove('show');
+    approvalBtn.removeAttribute('href');
+  }
 }
 
 function showMsg(text, type){ msg.textContent = text; msg.className = 'msg ' + type; }
